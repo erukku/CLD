@@ -76,9 +76,8 @@ module m_proc11 (w_clk, w_rst, r_rout, r_halt);
   reg         IfId_w=0,   IdEx_w=0,   ExMe_w=0,   MeWb_w=0;  //
   reg         IfId_we=0,  IdEx_we=0,  ExMe_we=0;             //
   wire [31:0] IfId_ir, MeWb_ldd;                             // note
-  reg [4:0]MeWb_rrd;
   /**************************** IF stage **********************************/
-  wire w_taken;//とりあえず
+  wire w_taken;
   wire [31:0] w_tpc;
   reg  [31:0] r_pc  = 0;
   wire [31:0] w_pc4 = r_pc + 4;
@@ -99,7 +98,6 @@ module m_proc11 (w_clk, w_rst, r_rout, r_halt);
   wire [31:0] w_imm32 = {{16{w_imm[15]}}, w_imm};
   wire [31:0] w_rrt2  = (w_op>6'h5) ? w_imm32 : w_rrt;
   assign      w_tpc   = IfId_pc4 + {w_imm32[29:0], 2'h0};
-  assign      w_taken = (w_op==`BNE && w_rrs!=w_rrt);
   m_regfile m_regs (w_clk, w_rs, w_rt, MeWb_rd2, MeWb_w, w_rslt2, w_rrs, w_rrt);
 
   always @(posedge w_clk) begin
@@ -113,20 +111,24 @@ module m_proc11 (w_clk, w_rst, r_rout, r_halt);
     IdEx_rrt2 <= #3 w_rrt2;
   end
   /**************************** EX/MEM stage ***********************************/
-  wire  [4:0] w_mu1   = ((MeWb_rd2 != 0) & (MeWb_rd2 == IfId_ir[25:21]))? w_rslt : w_rrs;
-  wire  [4:0] w_mu2   = ((MeWb_rd2 != 0) & (MeWb_rd2 == IfId_ir[20:16]))? w_rslt : w_rrt2;
-  wire [31:0] #10 w_rslt = IdEx_rrs + IdEx_rrt2; // ALU
+  assign      w_taken = (IdEx_op==`BNE && IdEx_rrs!=IdEx_rrt);
+  wire  [31:0] w_mu1  = (IdEx_w && (MeWb_rd2 != 0) && (MeWb_rd2 == IfId_ir[25:21]))? w_rslt : w_rrs;
+  wire [31:0] w_mu2  = (IdEx_w && (MeWb_rd2 != 0) && (MeWb_rd2 == IfId_ir[20:16]))? w_rslt : w_rrt2;
+  wire [31:0] #10 w_rslt = w_mu1 + w_mu2; // ALU
+  wire [31:0] w_gag = ((MeWb_op>6'h19 && MeWb_op<6'h28)&& (MeWb_rd2 != 0) && (MeWb_rd2 == IfId_ir[20:16]))? MeWb_ldd : IdEx_rrt;
+  m_memory m_dmem  (w_clk, MeWb_rslt[13:2], IdEx_we, w_gag, MeWb_ldd);
+
   always @(posedge w_clk) begin
-    MeWb_pc   <= #3 IdEx_pc;
-    MeWb_op   <= #3 IdEx_op;
-    MeWb_rd2  <= #3 IdEx_rd2;
-    MeWb_w    <= #3 IdEx_w;
-    MeWb_rslt <= #3 w_rslt;
+    MeWb_pc   <= #5 IdEx_pc;
+    MeWb_rslt <= #5 w_rslt;
+    MeWb_op   <= #5 IdEx_op;
+    MeWb_rd2  <= #5 IdEx_rd2;
+    MeWb_w    <= #5 IdEx_w;
   end
-  wire [31:0] w_gag = ((MeWb_rd2 != 0) & (MeWb_rd2 == ExMe_rrt))?w_rslt:ExMe_rrt;
-  m_memory m_dmem (w_clk, ExMe_rslt[13:2], IdEx_we, w_gag, MeWb_ldd);
+
+  //wire [31:0] w_gag = (MeWb_op>6'h19 && MeWb_op<6'h28)?IdEx_rrt:w_rslt2;
   /**************************** WB stage ***********************************/
-  assign w_rslt2 = (MeWb_op>6'h19 && MeWb_op<6'h28) ? MeWb_ldd : MeWb_rslt;
+  assign #10 w_rslt2 = (MeWb_op>6'h19 && MeWb_op<6'h28) ? MeWb_ldd : MeWb_rslt;
   /*************************************************************************/
   initial r_halt = 0;
   always @(posedge w_clk) if (MeWb_op==`HALT) r_halt <= 1;
@@ -151,21 +153,18 @@ module m_memory (w_clk, w_addr, w_we, w_din, r_dout);
   initial begin
     cm_ram[0] ={`NOP};                            //     nop
     cm_ram[1] ={`ADDI, 5'd0, 5'd1, 16'h20};       //     addi $1,  $0, 0x20
-    cm_ram[2] ={`ADDI, 5'd0, 5'd10,16'd1};        //     addi $10, $a0, 1
-    //cm_ram[2] ={`SW,   5'd0, 5'd1, 16'd0};        //     sw   $1, 0($0)
+    cm_ram[2] ={`ADDI, 5'd0, 5'd10,16'd1};        //     addi $10, $0, 1
     cm_ram[3] ={`ADDI, 5'd0, 5'd11,16'd2};        //     addi $11, $0, 2
     cm_ram[4] ={`ADDI, 5'd0, 5'd12,16'd3};        //     addi $12, $0, 3
     cm_ram[5] ={`ADDI, 5'd0, 5'd13,16'd4};        //     addi $13, $0, 4
     cm_ram[6] ={`ADDI, 5'd10,5'd10,16'h10};       //     addi $10, $10,0x10
     cm_ram[7] ={`ADDI, 5'd11,5'd11,16'h10};       //     addi $11, $11,0x10
-    //cm_ram[8] ={`ADDI, 5'd12,5'd12,16'h10};       //     addi $12, $12,0x10
-    cm_ram[8] ={`ADD,  5'd10,5'd11,5'd12,11'h20}; //     add  $12,$10,$11
+    cm_ram[8] ={`ADDI, 5'd12,5'd12,16'h10};       //     addi $12, $12,0x10
     cm_ram[9] ={`ADDI, 5'd13,5'd13,16'h10};       //     addi $13, $13,0x10
     cm_ram[10]={`ADD,  5'd10,5'd1, 5'd10,11'h20}; //     add  $10,$10,$1
     cm_ram[11]={`ADD,  5'd11,5'd1, 5'd11,11'h20}; //     add  $11,$11,$1
     cm_ram[12]={`ADD,  5'd12,5'd1, 5'd12,11'h20}; //     add  $12,$12,$1
-    cm_ram[13] ={`LW,   5'd0, 5'd12, 16'd0};       //     lw   $12, 0($0)
-    //cm_ram[13]={`ADD,  5'd13,5'd1, 5'd13,11'h20}; //     add  $13,$13,$1
+    cm_ram[13]={`ADD,  5'd13,5'd1, 5'd13,11'h20}; //     add  $13,$13,$1
     cm_ram[14]={`HALT, 26'h0};                    //     halt
     cm_ram[15]={`NOP};                            //     nop
     cm_ram[16]={`NOP};                            //     nop
@@ -173,6 +172,7 @@ module m_memory (w_clk, w_addr, w_we, w_din, r_dout);
     cm_ram[18]={`NOP};                            //     nop
     cm_ram[19]={`NOP};                            //     nop
   end
+    
   
 //    cm_ram[2] ={`SW,   5'd0, 5'd1, 16'd0};        //     sw   $1, 0($0)
 //    cm_ram[13] ={`LW,   5'd0, 5'd12, 16'd0};       //     lw   $12, 0($0)
