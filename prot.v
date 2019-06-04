@@ -26,11 +26,11 @@ module m_top ();
   reg [31:0] r_cnt = 0;
   always@(posedge r_clk) r_cnt <= r_cnt + 1;
   always@(posedge r_clk) begin #90
-    //$write("%8d : %x %x[%x] %x %x %x | %d %x %x (%x %x) \n",r_cnt, p.r_pc, p.IfId_pc, p.w_op, p.IdEx_pc, p.ExMe_pc, p.MeWb_pc, p.MeWb_rd2, p.w_rslt2,p.MeWb_ldd,p.ExMe_we,p.ExMe_rrt);
-    //$write("            rd -> %x rslt -> %x w-> %x rt->%x,rs->%x rrt -> %x rrs-> %x[w %x %x]| %x(%x %x %x) + %x = %x\n",p.MeWb_rd2,p.w_rslt2,p.MeWb_w,p.IdEx_rt,p.IdEx_rs,p.w_rrt2,p.w_rrs,p.IdEx_rd2,p.IdEx_w,p.w_mu1,p.w_rslt2,p.ExMe_rslt,p.IdEx_rrs,p.w_mu2,p.w_rslt);
-    $write("%8d : %x %x[%x] %x %x %x | %d %x \n",
+    $write("%8d : %x %x[%x] %x %x %x | %d %x %x (%x %x) \n",r_cnt, p.r_pc, p.IfId_pc, p.w_op, p.IdEx_pc, p.ExMe_pc, p.MeWb_pc, p.MeWb_rd2, p.w_rslt2,p.MeWb_ldd,p.ExMe_we,p.ExMe_rrt);
+    $write("            rd -> %x rslt -> %x w-> %x rt->%x,rs->%x rrt -> %x rrs-> %x[w %x %x]| %x(%x %x %x) + %x = %x\n",p.MeWb_rd2,p.w_rslt2,p.MeWb_w,p.IdEx_rt,p.IdEx_rs,p.w_rrt2,p.w_rrs,p.IdEx_rd2,p.IdEx_w,p.w_mu1,p.w_rslt2,p.ExMe_rslt,p.IdEx_rrs,p.w_mu2,p.w_rslt);
+    /*$write("%8d : %x %x[%x] %x %x %x | %d %x \n",
            r_cnt, p.r_pc, p.IfId_pc, p.w_op, p.IdEx_pc, p.ExMe_pc, p.MeWb_pc, 
-           p.MeWb_rd2, p.w_rslt2); 
+           p.MeWb_rd2, p.w_rslt2); */
   end
 endmodule
 
@@ -121,7 +121,7 @@ module m_proc11 (w_clk, w_rst, r_rout, r_halt);
   wire [31:0] w_mu1  = ((MeWb_w && (MeWb_rd2 != 0)&& (ExMe_rd2 != IdEx_rs) && (MeWb_rd2 == IdEx_rs))? w_rslt2 : (ExMe_w &&(ExMe_rd2 == IdEx_rs))? ExMe_rslt:IdEx_rrs);
   wire [31:0] w_mu2  = ((MeWb_w && (MeWb_rd2 != 0)&& (IdEx_op <= 6'h5) &&  (ExMe_rd2 != IdEx_rt) && (MeWb_rd2 == IdEx_rt))? w_rslt2 : (ExMe_w && (ExMe_rd2 != 0)&&(IdEx_op <= 6'h5) && (ExMe_rd2 == IdEx_rt))? ExMe_rslt:IdEx_rrt2);
   //wire [31:0] w_rslt = IdEx_rrs + IdEx_rrt2;
-  wire [31:0] #10 w_rslt = ((MeWb_w && (ExMe_rd2 != IdEx_rs) && (MeWb_rd2 == IdEx_rs))? w_rslt2 : (ExMe_w &&(ExMe_rd2 == IdEx_rs))? ExMe_rslt:IdEx_rrs) + ((MeWb_w && (IdEx_op <= 6'h5) &&  (ExMe_rd2 != IdEx_rt) && (MeWb_rd2 == IdEx_rt))? w_rslt2 : (ExMe_w&&(IdEx_op <= 6'h5) && (ExMe_rd2 == IdEx_rt))? ExMe_rslt:IdEx_rrt2); // ALU
+  wire [31:0] #10 w_rslt = ((MeWb_w && (ExMe_rd2 != IdEx_rs) && (MeWb_rd2 == IdEx_rs))? w_rslt2 : (ExMe_w &&(ExMe_rd2 == IdEx_rs))? ExMe_rslt:IdEx_rrs) + IdEx_rrt2; // ALU
   always @(posedge w_clk) begin
     ExMe_pc   <= #3 IdEx_pc;
     ExMe_op   <= #3 IdEx_op;
