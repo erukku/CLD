@@ -26,11 +26,11 @@ module m_top ();
   reg [31:0] r_cnt = 0;
   always@(posedge r_clk) r_cnt <= r_cnt + 1;
   always@(posedge r_clk) begin #90
-    //$write("%8d : %x %x[%x] %x %x %x | %d %x %x (%x %x) \n",r_cnt, p.r_pc, p.IfId_pc, p.w_op, p.IdEx_pc, p.ExMe_pc, p.MeWb_pc, p.MeWb_rd2, p.w_rslt2,p.MeWb_ldd,p.ExMe_we,p.ExMe_rrt);
-    //$write("            rd -> %x rslt -> %x w-> %x rt->%x,rs->%x rrt -> %x rrs-> %x[w %x %x]| %x(%x %x %x) + %x = %x\n",p.MeWb_rd2,p.w_rslt2,p.MeWb_w,p.IdEx_rt,p.IdEx_rs,p.w_rrt2,p.w_rrs,p.IdEx_rd2,p.IdEx_w,p.w_mu1,p.w_rslt2,p.ExMe_rslt,p.IdEx_rrs,p.w_mu2,p.w_rslt);
-    $write("%8d : %x %x[%x] %x %x %x | %d %x \n",
+    $write("%8d : %x %x[%x] %x %x %x | %d %x %x (%x %x) \n",r_cnt, p.r_pc, p.IfId_pc, p.w_op, p.IdEx_pc, p.ExMe_pc, p.MeWb_pc, p.MeWb_rd2, p.w_rslt2,p.MeWb_ldd,p.ExMe_we,w_rout);
+    $write("            rd -> %x rslt -> %x w-> %x rt->%x,rs->%x rrt -> %x rrs-> %x[w %x %x]| %x(%x %x %x) + %x = %x\n",p.MeWb_rd2,p.w_rslt2,p.MeWb_w,p.IdEx_rt,p.w_rs,p.w_rrt2,p.w_rrs,p.IdEx_rd2,p.IdEx_w,p.w_mu1,p.w_rslt2,p.ExMe_rslt,p.IdEx_rrs,p.w_mu2,p.w_rslt);
+    /*$write("%8d : %x %x[%x] %x %x %x | %d %x \n",
            r_cnt, p.r_pc, p.IfId_pc, p.w_op, p.IdEx_pc, p.ExMe_pc, p.MeWb_pc, 
-           p.MeWb_rd2, p.w_rslt2); 
+           p.MeWb_rd2, p.w_rslt2); */
   end
 endmodule
 
@@ -153,7 +153,7 @@ module m_proc11 (w_clk, w_rst, r_rout, r_halt);
   always @(posedge w_clk) if (MeWb_op==`HALT) r_halt <= 1;
   initial r_rout = 0;
   reg [31:0] r_tmp=0;
-  always @(posedge w_clk) r_tmp <= (w_rst) ? 0 : (w_rs==30) ? w_rrs: r_tmp;
+  always @(posedge w_clk) r_tmp <= (w_rst) ? 0 : (w_rs==30) ? ((MeWb_w &&(MeWb_rd2 != 0)&& (ExMe_rd2 != IdEx_rs) && (MeWb_rd2 == IdEx_rs))? w_rslt2 : (ExMe_w && (ExMe_rd2 != 0)&& (ExMe_rd2 != 0)&&(ExMe_rd2 == IdEx_rs))? ExMe_rslt:IdEx_rrs): r_tmp;
   always @(posedge w_clk) r_rout <= r_tmp;
 endmodule
 
