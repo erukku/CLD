@@ -26,11 +26,11 @@ module m_top ();
   reg [31:0] r_cnt = 0;
   always@(posedge r_clk) r_cnt <= r_cnt + 1;
   always@(posedge r_clk) begin #90
-    $write("%8d : %x %x[%x] %x %x %x | %d %x %x (%x %x) \n",r_cnt, p.r_pc, p.IfId_pc, p.w_op, p.IdEx_pc, p.ExMe_pc, p.MeWb_pc, p.MeWb_rd2, p.w_rslt2,p.MeWb_ldd,p.ExMe_we,p.ExMe_rrt);
-    $write("            rd -> %x rslt -> %x w-> %x rt->%x,rs->%x rrt -> %x rrs-> %x[w %x %x]| %x(%x %x %x) + %x = %x\n",p.MeWb_rd2,p.w_rslt2,p.MeWb_w,p.IdEx_rt,p.IdEx_rs,p.w_rrt2,p.w_rrs,p.IdEx_rd2,p.IdEx_w,p.w_mu1,p.w_rslt2,p.ExMe_rslt,p.IdEx_rrs,p.w_mu2,p.w_rslt);
-    /*$write("%8d : %x %x[%x] %x %x %x | %d %x \n",
+    //$write("%8d : %x %x[%x] %x %x %x | %d %x %x (%x %x) \n",r_cnt, p.r_pc, p.IfId_pc, p.w_op, p.IdEx_pc, p.ExMe_pc, p.MeWb_pc, p.MeWb_rd2, p.w_rslt2,p.MeWb_ldd,p.ExMe_we,p.ExMe_rrt);
+    //$write("            rd -> %x rslt -> %x w-> %x rt->%x,rs->%x rrt -> %x rrs-> %x[w %x %x]| %x(%x %x %x) + %x = %x\n",p.MeWb_rd2,p.w_rslt2,p.MeWb_w,p.IdEx_rt,p.IdEx_rs,p.w_rrt2,p.w_rrs,p.IdEx_rd2,p.IdEx_w,p.w_mu1,p.w_rslt2,p.ExMe_rslt,p.IdEx_rrs,p.w_mu2,p.w_rslt);
+    $write("%8d : %x %x[%x] %x %x %x | %d %x \n",
            r_cnt, p.r_pc, p.IfId_pc, p.w_op, p.IdEx_pc, p.ExMe_pc, p.MeWb_pc, 
-           p.MeWb_rd2, p.w_rslt2); */
+           p.MeWb_rd2, p.w_rslt2); 
   end
 endmodule
 
@@ -101,9 +101,9 @@ module m_proc11 (w_clk, w_rst, r_rout, r_halt);
   wire [31:0] w_imm32 = {{16{w_imm[15]}}, w_imm};
   wire [31:0] w_rrt2  = (w_op>6'h5) ? w_imm32 : w_rrt;
   assign      w_tpc   = IfId_pc4 + {w_imm32[29:0], 2'h0};
-  assign      w_taken = (w_op==`BNE && w_rrs != w_rrt);
+  //assign      w_taken = (w_op==`BNE && w_rrs != w_rrt);
   m_regfile m_regs (w_clk, w_rs, w_rt, MeWb_rd2, MeWb_w, w_rslt2, w_rrs, w_rrt);
-
+  assign      w_taken = (w_op==`BNE && ((MeWb_w && (MeWb_rd2 != 0)&& (ExMe_rd2 != w_rs)&& (ExMe_rd2 != w_rs) && (IdEx_rd2 != w_rs) &(MeWb_rd2 == w_rs))? w_rslt2 : (ExMe_w &&(ExMe_rd2 == w_rs) && (IdEx_rd2 != w_rs))? ExMe_rslt:(IdEx_w && (IdEx_rd2 == w_rs))? IdEx_rrs : w_rrs) != ((MeWb_w && (MeWb_rd2 != 0)&& (w_op <= 6'h5) &&  (ExMe_rd2 != w_rt) && (MeWb_rd2 == w_rt) && (IdEx_rd2 != w_rt))? w_rslt2 : (ExMe_w && (ExMe_rd2 != 0)&&(w_op <= 6'h5) && (ExMe_rd2 == w_rt) && (IdEx_rd2 != w_rt))? ExMe_rslt:(IdEx_w && (IdEx_rd2 == w_rt))?IdEx_rrt :w_rrt));
   always @(posedge w_clk) begin
     IdEx_pc   <= #3 IfId_pc;
     IdEx_op   <= #3 w_op;
